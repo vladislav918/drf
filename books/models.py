@@ -24,3 +24,7 @@ class Book(models.Model):
 class ReadList(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.date_added} - {self.book}'

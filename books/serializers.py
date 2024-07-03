@@ -1,9 +1,34 @@
 from rest_framework import serializers
+from django.contrib.auth.models import User
 
-from .models import Book
+from .models import Book, ReadList, Genre
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ['title']
 
 
 class BookSerializer(serializers.ModelSerializer):
+    genre = GenreSerializer(read_only=True)
+
     class Meta:
         model = Book
-        fields = '__all__'
+        fields = ['title', 'author', 'genre', 'description', 'cover_image', 'rating']
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username']
+
+
+class ReadListSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all(), write_only=True) 
+    book_details = BookSerializer(source='book', read_only=True)
+
+    class Meta:
+        model = ReadList
+        fields = ['user', 'book', 'date_added', 'book_details']
