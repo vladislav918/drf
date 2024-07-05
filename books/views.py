@@ -1,13 +1,9 @@
 from rest_framework.response import Response
 from rest_framework import viewsets, status, permissions, mixins
-from rest_framework.decorators import action
 
-from django.shortcuts import get_object_or_404
-
-from .filters import ReadBookListFilter
 from .models import Book, ReadList
 from .serializers import BookSerializer, ReadListSerializer
-from rest_framework.views import APIView
+from .filters import ReadBookListFilter
 
 
 class BookViewSet(viewsets.ModelViewSet):
@@ -24,7 +20,7 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
     """
     serializer_class = ReadListSerializer
     permission_classes = [permissions.IsAuthenticated]
-
+    filterset_class = ReadBookListFilter
 
     def get_queryset(self):
         return ReadList.objects.filter(user=self.request.user)

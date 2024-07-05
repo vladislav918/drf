@@ -10,4 +10,4 @@ admin.site.register(Genre)
 
 @admin.register(ReadList)
 class ReadListAdmin(admin.ModelAdmin):
-    fields = ('book', 'user', 'date_added')
+    fields = ('book', 'user')

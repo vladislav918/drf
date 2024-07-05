@@ -24,9 +24,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'storages',
     'rest_framework',
-    'books.apps.BooksConfig',
     'django_filters',
+
+    'books.apps.BooksConfig',
 ]
 
 MIDDLEWARE = [
@@ -117,3 +119,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
+
+
+
+AWS_ACCESS_KEY_ID = 'c402dff0c08b484c8f11b375776fa66c'
+AWS_SECRET_ACCESS_KEY = 'a0c349e76d6b4192ad6518651e275543'
+AWS_STORAGE_BUCKET_NAME = 'test-bucket'
+AWS_S3_REGION_NAME = 'ru-1'
+AWS_S3_ENDPOINT_URL = 'https://s3.ru-1.storage.selcloud.ru'
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
