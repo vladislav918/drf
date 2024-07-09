@@ -2,8 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
-
-
 class Genre(models.Model):
     title = models.CharField(max_length=20)
 
@@ -11,9 +9,16 @@ class Genre(models.Model):
         return f'{self.id} - {self.title}'
 
 
+class Author(models.Model):
+    name = models.CharField(max_length=255)
+
+    def __str__(self):
+        return f'{self.name}'
+
+
 class Book(models.Model):
     title = models.CharField(max_length=255)
-    author = models.CharField(max_length=60)
+    author = models.ManyToManyField(Author)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     description = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to='book_covers/', blank=True)

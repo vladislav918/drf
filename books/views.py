@@ -1,12 +1,18 @@
 from rest_framework.response import Response
 from rest_framework import viewsets, status, permissions, mixins
 
-from .models import Book, ReadList
-from .serializers import BookSerializer, ReadListSerializer
+from .models import Book, ReadList, Author
+from .serializers import (
+        BookSerializer,
+        ReadListSerializer,
+        AuthorSerializer,
+        BookWithoutAuthorSerializer
+    )
 from .filters import ReadBookListFilter
 
 
-class BookViewSet(viewsets.ModelViewSet):
+class BookViewSet(mixins.ListModelMixin,
+                viewsets.GenericViewSet):
     queryset = Book.objects.all()
     serializer_class = BookSerializer
 
@@ -52,3 +58,22 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
             return Response({'message': 'Книга удалена из списка "Прочитанное"'})
 
         return Response({'error': 'Книга не найдена'})
+
+
+class AuthorDetailView(viewsets.ReadOnlyModelViewSet):
+    queryset = Author.objects.all()
+    serializer_class = AuthorSerializer
+
+    def retrieve(self, request, pk=None):
+        author = self.get_object()
+        author_serializer = AuthorSerializer(author)
+
+        books = author.book_set.all()
+        books_serializer = BookWithoutAuthorSerializer(books, many=True)
+
+        combined_data = {
+            'author': author_serializer.data,
+            'books': books_serializer.data
+        }
+
+        return Response(combined_data)
