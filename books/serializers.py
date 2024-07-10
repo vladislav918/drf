@@ -1,7 +1,6 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-
-from .models import Book, ReadList, Genre, Author
+from rest_framework.fields import CurrentUserDefault
+from .models import Book, ReadList, Genre, Author, Comment
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -11,40 +10,59 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class AuthorSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Author
         fields = ['id', 'name']
 
 
-class BookWithoutAuthorSerializer(serializers.ModelSerializer):
+class CommentSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.username')
+    created_at = serializers.DateTimeField(read_only=True)
+    replies = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['content', 'user', 'created_at', 'replies']
+
+    def get_replies(self, obj):
+        if obj.parent is None:
+            return CommentSerializer(obj.replies.all(), many=True).data
+        return []
+
+
+class BookWithCommentSerializer(serializers.ModelSerializer):
+    """
+    Serializers для отображения комментариев при просмотре конкретной книги
+    """
     genre = GenreSerializer(read_only=True)
+    author = AuthorSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, required=False)
 
     class Meta:
         model = Book
-        fields = ['title', 'genre', 'description', 'cover_image', 'rating']
+        fields = ['title', 'author', 'genre', 'description', 'comments', 'cover_image', 'rating']
 
 
 class BookSerializer(serializers.ModelSerializer):
+    """
+    Основной Serializers для книг
+    """
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
-    
-    class Meta: 
-        model = Book
-        fields = ['title', 'author', 'genre', 'description', 'cover_image', 'rating']
 
-
-class UserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ['id', 'username']
+        model = Book
+        fields = ['id','title', 'author', 'genre', 'description', 'cover_image', 'rating']
 
 
 class ReadListSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    """
+    Serializers для списка прочитанных книг
+    """
     book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all(), write_only=True)
     book_details = BookSerializer(source='book', read_only=True)
+    user = serializers.HiddenField(default=CurrentUserDefault())
 
     class Meta:
         model = ReadList
-        fields = ['user', 'book', 'date_added', 'book_details']
+        fields = ['user', 'book', 'book_details']

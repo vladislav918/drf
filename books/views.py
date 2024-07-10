@@ -1,20 +1,57 @@
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework import viewsets, status, permissions, mixins
 
-from .models import Book, ReadList, Author
+from .models import Book, ReadList, Author, Comment
 from .serializers import (
         BookSerializer,
         ReadListSerializer,
         AuthorSerializer,
-        BookWithoutAuthorSerializer
+        CommentSerializer,
+        BookWithCommentSerializer,
     )
 from .filters import ReadBookListFilter
 
 
-class BookViewSet(mixins.ListModelMixin,
-                viewsets.GenericViewSet):
+class BookViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Класс для отображения книг и добавления комментариев к конкретной книге
+    """
     queryset = Book.objects.all()
-    serializer_class = BookSerializer
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return BookWithCommentSerializer
+        return BookSerializer
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def comments(self, request, pk=None):
+        book = self.get_object()
+        serializer = CommentSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(book=book, user=request.user)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def reply(self, request, pk=None):
+        book = self.get_object()
+        comment_id = self.request.data.get('comment_id')
+
+        if not comment_id:
+            return Response({'error': 'comment_id is required'}, status=400)
+
+        try:
+            comment = book.comments.get(id=comment_id)
+        except Comment.DoesNotExist:
+            return Response({'error': 'Comment not found'}, status=404)
+
+        serializer = CommentSerializer(data=self.request.data)
+        if serializer.is_valid():
+            serializer.save(book=book, user=self.request.user, parent=comment)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
 
 
 class ReadListModelViewSet(mixins.CreateModelMixin,
@@ -61,19 +98,16 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
 
 
 class AuthorDetailView(viewsets.ReadOnlyModelViewSet):
+    """
+    Класс для отображения Авторов книг и книг, которые они написали
+    """
     queryset = Author.objects.all()
     serializer_class = AuthorSerializer
 
     def retrieve(self, request, pk=None):
         author = self.get_object()
-        author_serializer = AuthorSerializer(author)
 
         books = author.book_set.all()
-        books_serializer = BookWithoutAuthorSerializer(books, many=True)
+        books_serializer = BookSerializer(books, many=True)
 
-        combined_data = {
-            'author': author_serializer.data,
-            'books': books_serializer.data
-        }
-
-        return Response(combined_data)
+        return Response(books_serializer.data)

@@ -1,13 +1,13 @@
 from django.contrib import admin
-from django.contrib.admin.widgets import AutocompleteSelectMultiple
-from django.db import models
 
-from .models import Book, Genre, ReadList, Author
+from .models import Book, Genre, ReadList, Author, Comment
 
 
 admin.site.register(Genre)
 
 admin.site.register(Author)
+
+admin.site.register(Comment)
 
 
 @admin.register(Book)
