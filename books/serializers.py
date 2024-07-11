@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault
-from .models import Book, ReadList, Genre, Author, Comment
+from .models import Book, ReadList, Genre, Author, Comment, Rating
+from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -25,9 +26,23 @@ class CommentSerializer(serializers.ModelSerializer):
         fields = ['content', 'user', 'created_at', 'replies']
 
     def get_replies(self, obj):
-        if obj.parent is None:
-            return CommentSerializer(obj.replies.all(), many=True).data
+        replies = obj.replies.all()
+        if replies.exists():
+            return CommentSerializer(replies, many=True).data
         return []
+
+
+class RatingSerializer(serializers.ModelSerializer):
+    rating = serializers.IntegerField(
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(5),
+        ]
+    )
+
+    class Meta:
+        model = Rating
+        fields = ['rating']
 
 
 class BookWithCommentSerializer(serializers.ModelSerializer):
@@ -37,10 +52,14 @@ class BookWithCommentSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
     comments = CommentSerializer(many=True, required=False)
+    average_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
-        fields = ['title', 'author', 'genre', 'description', 'comments', 'cover_image', 'rating']
+        fields = ['title', 'author', 'genre', 'description', 'comments', 'average_rating','cover_image']
+
+    def get_average_rating(self, obj):
+        return obj.average_rating()
 
 
 class BookSerializer(serializers.ModelSerializer):
@@ -52,7 +71,7 @@ class BookSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Book
-        fields = ['id','title', 'author', 'genre', 'description', 'cover_image', 'rating']
+        fields = ['id','title', 'author', 'genre', 'description', 'cover_image']
 
 
 class ReadListSerializer(serializers.ModelSerializer):

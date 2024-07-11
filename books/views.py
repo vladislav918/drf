@@ -1,14 +1,15 @@
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework import viewsets, status, permissions, mixins
+from django.shortcuts import get_object_or_404
 
-from .models import Book, ReadList, Author, Comment
+from .models import Book, ReadList, Author, Comment, Rating
 from .serializers import (
         BookSerializer,
         ReadListSerializer,
         AuthorSerializer,
         CommentSerializer,
         BookWithCommentSerializer,
+        RatingSerializer,
     )
 from .filters import ReadBookListFilter
 
@@ -24,34 +25,43 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
             return BookWithCommentSerializer
         return BookSerializer
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def comments(self, request, pk=None):
-        book = self.get_object()
+
+class CommentBookViewSet(viewsets.ViewSet):
+    queryset = Comment.objects.filter(parent=None)
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, book_pk=None):
+        book = get_object_or_404(Book, pk=book_pk)
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save(book=book, user=request.user)
+            parent_id = request.data.get('parent')
+            parent = None
+            if parent_id:
+                parent = get_object_or_404(Comment, pk=parent_id)
+            serializer.save(book=book, user=request.user, parent=parent)
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
-    
 
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
-    def reply(self, request, pk=None):
-        book = self.get_object()
-        comment_id = self.request.data.get('comment_id')
 
-        if not comment_id:
-            return Response({'error': 'comment_id is required'}, status=400)
+class RatingViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
 
-        try:
-            comment = book.comments.get(id=comment_id)
-        except Comment.DoesNotExist:
-            return Response({'error': 'Comment not found'}, status=404)
+    def create(self, request, book_pk=None):
+        book = get_object_or_404(Book, pk=book_pk)
 
-        serializer = CommentSerializer(data=self.request.data)
+        serializer = RatingSerializer(data=self.request.data)
         if serializer.is_valid():
-            serializer.save(book=book, user=self.request.user, parent=comment)
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+            rating, created = Rating.objects.update_or_create(
+                book=book,
+                user=request.user,
+                defaults={'rating': serializer.validated_data['rating']}
+            )
+            if not created:
+                return Response({'message': 'Рейтинг обновлен'}, status=status.HTTP_200_OK)
+
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
 
 class ReadListModelViewSet(mixins.CreateModelMixin,

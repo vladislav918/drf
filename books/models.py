@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Avg
 
 
 class Genre(models.Model):
@@ -33,16 +34,35 @@ class Comment(models.Model):
         return f'{self.user.username} - {self.book.title}'
 
 
+class Rating(models.Model):
+    book = models.ForeignKey('Book', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('book', 'user')
+
+    def __str__(self):
+        return f"{self.user.username} оценил '{self.book.title}' как {self.rating}"
+
+
 class Book(models.Model):
     title = models.CharField(max_length=255)
     author = models.ManyToManyField(Author)
     genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
     description = models.TextField(blank=True)
     cover_image = models.ImageField(upload_to='book_covers/', blank=True)
-    rating = models.DecimalField(max_digits=3, decimal_places=1, default=0)
 
     def __str__(self):
         return f'{self.id} - {self.title}'
+    
+
+    def average_rating(self):
+        ratings = self.rating_set.all()
+        if ratings.count() > 0:
+            return ratings.aggregate(Avg('rating'))['rating__avg']
+        return None
 
 
 class ReadList(models.Model):

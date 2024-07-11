@@ -1,6 +1,4 @@
 from django_filters import rest_framework as filters
-from datetime import date, timedelta
-
 
 from .models import ReadList
 
