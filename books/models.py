@@ -1,7 +1,6 @@
 from django.db import models
-from django.contrib.auth.models import User
 from django.db.models import Avg
-
+from django.conf import settings
 
 class Genre(models.Model):
     title = models.CharField(max_length=20)
@@ -19,7 +18,7 @@ class Author(models.Model):
 
 class Comment(models.Model):
     book = models.ForeignKey('Book', on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     parent = models.ForeignKey(
@@ -36,7 +35,7 @@ class Comment(models.Model):
 
 class Rating(models.Model):
     book = models.ForeignKey('Book', on_delete=models.CASCADE)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)], default=1)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -56,7 +55,7 @@ class Book(models.Model):
 
     def __str__(self):
         return f'{self.id} - {self.title}'
-    
+
 
     def average_rating(self):
         ratings = self.rating_set.all()
@@ -66,7 +65,7 @@ class Book(models.Model):
 
 
 class ReadList(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     date_added = models.DateTimeField(auto_now_add=True)
 

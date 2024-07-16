@@ -1,5 +1,5 @@
 from rest_framework.response import Response
-from rest_framework import viewsets, status, permissions, mixins
+from rest_framework import viewsets, status, mixins
 from django.shortcuts import get_object_or_404
 
 from .models import Book, ReadList, Author, Comment, Rating
@@ -19,6 +19,7 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     Класс для отображения книг и добавления комментариев к конкретной книге
     """
     queryset = Book.objects.all()
+    permission_classes = []
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -28,7 +29,6 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
 
 class CommentBookViewSet(viewsets.ViewSet):
     queryset = Comment.objects.filter(parent=None)
-    permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
@@ -44,7 +44,6 @@ class CommentBookViewSet(viewsets.ViewSet):
 
 
 class RatingViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
@@ -72,15 +71,13 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
     Класс для отображения, добавления и удаления книг в список "Прочитанных"
     """
     serializer_class = ReadListSerializer
-    permission_classes = [permissions.IsAuthenticated]
     filterset_class = ReadBookListFilter
 
     def get_queryset(self):
         return ReadList.objects.filter(user=self.request.user)
 
-
     def create(self, request):
-        serializer = ReadListSerializer(data=request.data)
+        serializer = ReadListSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
 
         if ReadList.objects.filter(
