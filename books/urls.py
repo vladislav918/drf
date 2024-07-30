@@ -7,15 +7,16 @@ from .views import (
     AuthorDetailView,
     RatingViewSet,
     CommentBookViewSet,
+    BookDocumentView,
 )
-
 
 router = DefaultRouter()
 router.register(r'book', BookViewSet, 'book')
+router.register(r'book-search', BookDocumentView, basename='book-search')
 router.register(r'book/(?P<book_pk>\d+)/comments', CommentBookViewSet, basename='comment')
 router.register(r'book/(?P<book_pk>\d+)/ratings', RatingViewSet, basename='rating')
-router.register(r'read-book', ReadListModelViewSet, 'read-book')
-router.register(r'author', AuthorDetailView, 'author')
+router.register(r'read-book', ReadListModelViewSet, basename='read-book')
+router.register(r'author', AuthorDetailView, basename='author')
 
 
 urlpatterns = [

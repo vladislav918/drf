@@ -1,13 +1,19 @@
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault
-from .models import Book, ReadList, Genre, Author, Comment, Rating
+
 from django.core.validators import MinValueValidator, MaxValueValidator
+
+from django_elasticsearch_dsl_drf.serializers import DocumentSerializer
+
+from .models import Book, ReadList, Genre, Author, Comment, Rating
+
+from .documents import BookDocument
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
-        fields = ['title']
+        fields = ['id','title']
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -55,8 +61,22 @@ class BookWithCommentSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
 
     class Meta:
-        model = Book
+        model = Book    
         fields = ['title', 'author', 'genre', 'description', 'comments', 'average_rating','cover_image']
+
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        recommendations = self.get_recommendations(instance)
+        data['recommendations'] = [BookSerializer(recommendation).data for recommendation in recommendations]
+
+        return data
+
+
+    def get_recommendations(self, book):
+        recommendations = Book.objects.filter(genre=book.genre).exclude(id=book.id).order_by('-rating')[:5]
+        return recommendations
+
 
     def get_average_rating(self, obj):
         return obj.average_rating()
@@ -68,7 +88,7 @@ class BookSerializer(serializers.ModelSerializer):
     """
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
-
+    
     class Meta:
         model = Book
         fields = ['id','title', 'author', 'genre', 'description', 'cover_image']
@@ -85,3 +105,10 @@ class ReadListSerializer(serializers.ModelSerializer):
     class Meta:
         model = ReadList
         fields = ['user', 'book', 'book_details']
+
+
+class BookDocumentSerializer(DocumentSerializer):
+    class Meta:
+        document = BookDocument
+
+        fields = ['id','title', 'author', 'genre', 'description']
