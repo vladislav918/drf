@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Avg
 from django.conf import settings
 
+
 class Genre(models.Model):
     title = models.CharField(max_length=20)
 

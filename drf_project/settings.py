@@ -11,7 +11,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 DEBUG = env.bool("DEBUG", default=False)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -30,6 +30,9 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'django_extensions',
+    
+    'django_elasticsearch_dsl',
+    'django_elasticsearch_dsl_drf',
 
     'books.apps.BooksConfig',
     'accounts.apps.AccountsConfig',
@@ -171,3 +174,16 @@ DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 
 AUTH_USER_MODEL = 'accounts.User'
+
+
+import os
+
+ELASTICSEARCH_DSL = {
+    'default': {
+        'hosts': [f'http://{os.getenv("ELASTICSEARCH_HOST", "elasticsearch")}:{os.getenv("ELASTICSEARCH_PORT", "9200")}'],
+    },
+}
+
+ELASTICSEARCH_INDEX_NAMES = {
+    'books.documents': 'books',
+}

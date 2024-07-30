@@ -4,19 +4,27 @@ from django.shortcuts import get_object_or_404
 
 from .models import Book, ReadList, Author, Comment, Rating
 from .serializers import (
-        BookSerializer,
-        ReadListSerializer,
-        AuthorSerializer,
-        CommentSerializer,
-        BookWithCommentSerializer,
-        RatingSerializer,
-    )
+    BookSerializer,
+    ReadListSerializer,
+    AuthorSerializer,
+    CommentSerializer,
+    BookWithCommentSerializer,
+    RatingSerializer,
+    BookDocumentSerializer
+)
 from .filters import ReadBookListFilter
+
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
+from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
+from django_elasticsearch_dsl_drf.filter_backends import SearchFilterBackend, SuggesterFilterBackend
+
+from .documents import BookDocument
+
 
 
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Класс для отображения книг и добавления комментариев к конкретной книге
+    Класс для отображения книг
     """
     queryset = Book.objects.all()
     permission_classes = []
@@ -28,6 +36,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CommentBookViewSet(viewsets.ViewSet):
+    """
+    Добавления комментариев к конкретной книге
+    """
     queryset = Comment.objects.filter(parent=None)
 
     def create(self, request, book_pk=None):
@@ -44,7 +55,9 @@ class CommentBookViewSet(viewsets.ViewSet):
 
 
 class RatingViewSet(viewsets.ViewSet):
-
+    """
+    Добавления рейтинга к конкретной книге
+    """
     def create(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
 
@@ -118,3 +131,28 @@ class AuthorDetailView(viewsets.ReadOnlyModelViewSet):
         books_serializer = BookSerializer(books, many=True)
 
         return Response(books_serializer.data)
+
+
+class BookDocumentView(DocumentViewSet):
+    """
+    Поиск через ElasticSearch 
+    """
+    permission_classes = []
+    document = BookDocument
+    serializer_class = BookDocumentSerializer
+
+    filter_backends = [
+    	SearchFilterBackend,
+        SuggesterFilterBackend,
+    ]
+
+    search_fields = ('title',)
+
+    suggester_fields = {
+        'title': {
+            'field': 'title.suggest',
+            'suggesters': [
+                SUGGESTER_COMPLETION,
+            ],
+        },
+    }

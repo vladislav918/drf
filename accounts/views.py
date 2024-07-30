@@ -18,7 +18,6 @@ class UserRegisterationAPIView(GenericAPIView):
         user = serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-
 class UserLoginAPIView(GenericAPIView):
     permission_classes = (AllowAny,)
     serializer_class = serializers.UserLoginSerializer
