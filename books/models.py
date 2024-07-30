@@ -60,7 +60,7 @@ class Book(models.Model):
 
     def average_rating(self):
         ratings = self.rating_set.all()
-        if ratings.count() > 0:
+        if ratings.exists():
             return ratings.aggregate(Avg('rating'))['rating__avg']
         return None
 

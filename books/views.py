@@ -1,6 +1,9 @@
 from rest_framework.response import Response
 from rest_framework import viewsets, status, mixins
+from rest_framework.views import APIView
+
 from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
 
 from .models import Book, ReadList, Author, Comment, Rating
 from .serializers import (
@@ -21,12 +24,36 @@ from django_elasticsearch_dsl_drf.filter_backends import SearchFilterBackend, Su
 from .documents import BookDocument
 
 
-
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Класс для отображения книг
     """
-    queryset = Book.objects.all()
+
+    def get_queryset(self):
+        queryset = Book.objects.all().select_related('genre').prefetch_related(
+                'author'
+            )
+        if self.action == 'retrieve':
+            comments_prefetch = Prefetch('comments', queryset=Comment.objects.select_related('user').only(
+                'book__id',
+                'user__email',
+                'content',
+                'created_at',
+                'parent__id'
+            ).prefetch_related(
+                Prefetch('replies', queryset=Comment.objects.select_related('user').only(
+                    'book__id',
+                    'user__email',
+                    'content',
+                    'created_at',
+                    'parent__id'
+                ))
+            ), to_attr='ordered_comments')
+
+            queryset = queryset.prefetch_related(comments_prefetch)
+
+        return queryset
+
     permission_classes = []
 
     def get_serializer_class(self):
@@ -35,23 +62,24 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         return BookSerializer
 
 
-class CommentBookViewSet(viewsets.ViewSet):
+class CommentBookAPIView(APIView):
     """
-    Добавления комментариев к конкретной книге
+    Добавление комментариев к конкретной книге
     """
-    queryset = Comment.objects.filter(parent=None)
+    def get_serializer_class(self):
+        return CommentSerializer
 
-    def create(self, request, book_pk=None):
+    def post(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
-        serializer = CommentSerializer(data=request.data)
+        serializer = self.get_serializer_class()(data=request.data)
         if serializer.is_valid():
             parent_id = request.data.get('parent')
             parent = None
             if parent_id:
                 parent = get_object_or_404(Comment, pk=parent_id)
             serializer.save(book=book, user=request.user, parent=parent)
-            return Response(serializer.data, status=201)
-        return Response(serializer.errors, status=400)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class RatingViewSet(viewsets.ViewSet):

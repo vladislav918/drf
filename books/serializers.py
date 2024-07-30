@@ -22,20 +22,23 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class CommentSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.username')
+class ReplySerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(read_only=True)
-    replies = serializers.SerializerMethodField()
+    user = serializers.ReadOnlyField(source='user.email')
+
+    class Meta:
+        model = Comment
+        fields = ['content', 'user', 'created_at']
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    user = serializers.ReadOnlyField(source='user.email')
+    created_at = serializers.DateTimeField(read_only=True)
+    replies = ReplySerializer(many=True, read_only=True)
 
     class Meta:
         model = Comment
         fields = ['content', 'user', 'created_at', 'replies']
-
-    def get_replies(self, obj):
-        replies = obj.replies.all()
-        if replies.exists():
-            return CommentSerializer(replies, many=True).data
-        return []
 
 
 class RatingSerializer(serializers.ModelSerializer):
@@ -57,29 +60,12 @@ class BookWithCommentSerializer(serializers.ModelSerializer):
     """
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, required=False)
-    average_rating = serializers.SerializerMethodField()
+    comments = CommentSerializer(source='ordered_comments', many=True, required=False)
 
     class Meta:
-        model = Book    
-        fields = ['title', 'author', 'genre', 'description', 'comments', 'average_rating','cover_image']
+        model = Book
+        fields = ['title', 'author', 'genre', 'description', 'comments', 'cover_image']
 
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        recommendations = self.get_recommendations(instance)
-        data['recommendations'] = [BookSerializer(recommendation).data for recommendation in recommendations]
-
-        return data
-
-
-    def get_recommendations(self, book):
-        recommendations = Book.objects.filter(genre=book.genre).exclude(id=book.id).order_by('-rating')[:5]
-        return recommendations
-
-
-    def get_average_rating(self, obj):
-        return obj.average_rating()
 
 
 class BookSerializer(serializers.ModelSerializer):
@@ -88,7 +74,7 @@ class BookSerializer(serializers.ModelSerializer):
     """
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
-    
+
     class Meta:
         model = Book
         fields = ['id','title', 'author', 'genre', 'description', 'cover_image']
@@ -111,4 +97,4 @@ class BookDocumentSerializer(DocumentSerializer):
     class Meta:
         document = BookDocument
 
-        fields = ['id','title', 'author', 'genre', 'description']
+        fields = ['id', 'title', 'author', 'genre', 'description']
