@@ -23,7 +23,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'storages',
     'rest_framework',
+    'django_filters',
+
+    'books.apps.BooksConfig',
 ]
 
 MIDDLEWARE = [
@@ -108,3 +113,21 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
+
+
+
+AWS_ACCESS_KEY_ID = env.str("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = env.str("AWS_SECRET_ACCESS_KEY")
+AWS_STORAGE_BUCKET_NAME = env.str("AWS_STORAGE_BUCKET_NAME")
+AWS_S3_REGION_NAME = env.str("AWS_S3_REGION_NAME")
+AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL")
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
