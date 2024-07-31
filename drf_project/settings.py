@@ -25,12 +25,16 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'storages',
+
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+
     'django_filters',
     'django_extensions',
-    
+
+    'mptt',
+
     'django_elasticsearch_dsl',
     'django_elasticsearch_dsl_drf',
 

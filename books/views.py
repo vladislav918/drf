@@ -3,7 +3,6 @@ from rest_framework import viewsets, status, mixins
 from rest_framework.views import APIView
 
 from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
 
 from .models import Book, ReadList, Author, Comment, Rating
 from .serializers import (
@@ -16,6 +15,7 @@ from .serializers import (
     BookDocumentSerializer
 )
 from .filters import ReadBookListFilter
+from django.db.models import Prefetch
 
 from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
 from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
@@ -28,31 +28,15 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Класс для отображения книг
     """
-
-    def get_queryset(self):
-        queryset = Book.objects.all().select_related('genre').prefetch_related(
-                'author'
-            )
-        if self.action == 'retrieve':
-            comments_prefetch = Prefetch('comments', queryset=Comment.objects.select_related('user').only(
-                'book__id',
-                'user__email',
-                'content',
-                'created_at',
-                'parent__id'
-            ).prefetch_related(
-                Prefetch('replies', queryset=Comment.objects.select_related('user').only(
-                    'book__id',
-                    'user__email',
-                    'content',
-                    'created_at',
-                    'parent__id'
-                ))
-            ), to_attr='ordered_comments')
-
-            queryset = queryset.prefetch_related(comments_prefetch)
-
-        return queryset
+    queryset = Book.objects.all().select_related('genre').prefetch_related(
+        'author',
+        Prefetch(
+            'comments',
+            queryset=Comment.objects.all().select_related(
+                'user'
+            ).only('id', 'content', 'created_at', 'user__email', 'parent_id', 'book_id')
+        )
+    )
 
     permission_classes = []
 
@@ -82,14 +66,17 @@ class CommentBookAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class RatingViewSet(viewsets.ViewSet):
+class RatingAPIView(APIView):
     """
     Добавления рейтинга к конкретной книге
     """
-    def create(self, request, book_pk=None):
+    def get_serializer_class(self):
+        return RatingSerializer
+
+    def post(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
 
-        serializer = RatingSerializer(data=self.request.data)
+        serializer = self.get_serializer_class()(data=request.data)
         if serializer.is_valid():
             rating, created = Rating.objects.update_or_create(
                 book=book,
@@ -100,8 +87,7 @@ class RatingViewSet(viewsets.ViewSet):
                 return Response({'message': 'Рейтинг обновлен'}, status=status.HTTP_200_OK)
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-        return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class ReadListModelViewSet(mixins.CreateModelMixin,
@@ -115,21 +101,13 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
     filterset_class = ReadBookListFilter
 
     def get_queryset(self):
-        return ReadList.objects.filter(user=self.request.user)
+        return ReadList.objects.filter(user=self.request.user).select_related(
+            'book'
+            ).select_related('book__genre').prefetch_related('book__author')
 
     def create(self, request):
         serializer = ReadListSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
-
-        if ReadList.objects.filter(
-                user=request.user,
-                book=serializer.validated_data['book']
-            ).exists():
-
-            return Response(
-                {'error': 'Эта книга уже добавлена в список "Прочитанное"'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -149,7 +127,9 @@ class AuthorDetailView(viewsets.ReadOnlyModelViewSet):
     """
     Класс для отображения Авторов книг и книг, которые они написали
     """
-    queryset = Author.objects.all()
+    queryset = Author.objects.all().prefetch_related(
+        Prefetch('book_set', queryset=Book.objects.select_related('genre'))
+    )
     serializer_class = AuthorSerializer
 
     def retrieve(self, request, pk=None):

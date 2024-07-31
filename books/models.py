@@ -2,6 +2,8 @@ from django.db import models
 from django.db.models import Avg
 from django.conf import settings
 
+from mptt.models import MPTTModel, TreeForeignKey
+
 
 class Genre(models.Model):
     title = models.CharField(max_length=20)
@@ -17,18 +19,22 @@ class Author(models.Model):
         return f'{self.name}'
 
 
-class Comment(models.Model):
+class Comment(MPTTModel):
     book = models.ForeignKey('Book', on_delete=models.CASCADE, related_name='comments')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    parent = models.ForeignKey(
+    parent = TreeForeignKey(
         'self',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='replies'
+        related_name='children'
     )
+    level = models.IntegerField(default=0)
+
+    class MPTTMeta:
+        order_insertion_by = ['content']
 
     def __str__(self):
         return f'{self.user.username} - {self.book.title}'
@@ -41,7 +47,9 @@ class Rating(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ('book', 'user')
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'book'], name='unique_rating_per_user')
+        ]
 
     def __str__(self):
         return f"{self.user.username} оценил '{self.book.title}' как {self.rating}"
@@ -69,6 +77,11 @@ class ReadList(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
     date_added = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'book'], name='unique_read_list_entry')
+        ]
 
     def __str__(self):
         return f'{self.date_added} - {self.book}'

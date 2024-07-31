@@ -22,23 +22,13 @@ class AuthorSerializer(serializers.ModelSerializer):
         fields = ['id', 'name']
 
 
-class ReplySerializer(serializers.ModelSerializer):
-    created_at = serializers.DateTimeField(read_only=True)
-    user = serializers.ReadOnlyField(source='user.email')
-
-    class Meta:
-        model = Comment
-        fields = ['content', 'user', 'created_at']
-
-
 class CommentSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.email')
     created_at = serializers.DateTimeField(read_only=True)
-    replies = ReplySerializer(many=True, read_only=True)
 
     class Meta:
         model = Comment
-        fields = ['content', 'user', 'created_at', 'replies']
+        fields = ['id', 'parent', 'user', 'content', 'created_at']
 
 
 class RatingSerializer(serializers.ModelSerializer):
@@ -54,20 +44,6 @@ class RatingSerializer(serializers.ModelSerializer):
         fields = ['rating']
 
 
-class BookWithCommentSerializer(serializers.ModelSerializer):
-    """
-    Serializers для отображения комментариев при просмотре конкретной книги
-    """
-    genre = GenreSerializer(read_only=True)
-    author = AuthorSerializer(many=True, read_only=True)
-    comments = CommentSerializer(source='ordered_comments', many=True, required=False)
-
-    class Meta:
-        model = Book
-        fields = ['title', 'author', 'genre', 'description', 'comments', 'cover_image']
-
-
-
 class BookSerializer(serializers.ModelSerializer):
     """
     Основной Serializers для книг
@@ -80,11 +56,21 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ['id','title', 'author', 'genre', 'description', 'cover_image']
 
 
+class BookWithCommentSerializer(BookSerializer):
+    """
+    Serializers для отображения комментариев при просмотре конкретной книги
+    """
+    comments = CommentSerializer(many=True, required=False)
+
+    class Meta(BookSerializer.Meta):
+        fields = BookSerializer.Meta.fields + ['comments']
+
+
 class ReadListSerializer(serializers.ModelSerializer):
     """
     Serializers для списка прочитанных книг
     """
-    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all(), write_only=True)
+    book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all())
     book_details = BookSerializer(source='book', read_only=True)
     user = serializers.HiddenField(default=CurrentUserDefault())
 

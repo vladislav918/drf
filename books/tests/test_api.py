@@ -42,22 +42,20 @@ class BookViewSetTestCase(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(len(response.data['results']), Book.objects.count())
 
 
-    # def test_retrieve_view_returns_correct_details(self):
-    #     """
-    #     Тест для просмотра детально книг
-    #     """
-    #     comment = Comment.objects.create(
-    #         book=self.book,
-    #         user=self.user,
-    #         content="Пример комментария",
-    #     )
-    #     url = reverse('book-detail', kwargs={'pk': self.book.pk})
-    #     response = self.client.get(url)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     expected_data = BookWithCommentSerializer(self.book).data
-    #     print("Response Data:", response.data)
-    #     print("Expected Data:", expected_data)
-    #     self.assertEqual(response.data, expected_data)
+    def test_retrieve_view_returns_correct_details(self):
+        """
+        Тест для просмотра детально книг
+        """
+        comment = Comment.objects.create(
+            book=self.book,
+            user=self.user,
+            content="Пример комментария",
+        )
+        url = reverse('book-detail', kwargs={'pk': self.book.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        expected_data = BookWithCommentSerializer(self.book).data
+        self.assertEqual(response.data, expected_data)
 
 
     def test_get_serializer_class_for_retrieve(self):
@@ -153,8 +151,9 @@ class CommentBookViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         }
         url = reverse('comment-list', kwargs={'book_pk': self.book.pk})
         response = self.client_authenticated.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertEqual(response.data['detail'], 'No Comment matches the given query.')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        expected_error_message = f"Invalid pk \"{data['parent']}\" - object does not exist."
+        self.assertEqual(response.data['parent'][0], expected_error_message)
         self.assertEqual(Comment.objects.count(), 0)
 
 
