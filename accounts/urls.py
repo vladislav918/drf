@@ -6,7 +6,8 @@ from .views import (
     UserLoginAPIView,
     LogoutView,
     RequestPasswordReset,
-    ResetPassword
+    ResetPassword,
+    ChangePasswordAPIView
 )
 
 
@@ -18,4 +19,5 @@ urlpatterns = [
 
     path('reset-password-request/', RequestPasswordReset.as_view(), name='password_reset_request'),
     path('reset/<str:token>/', ResetPassword.as_view(), name='reset-password'),
+    path('change-password/', ChangePasswordAPIView.as_view(), name='change-password')
 ]

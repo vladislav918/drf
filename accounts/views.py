@@ -1,4 +1,5 @@
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.contrib.auth.hashers import make_password
 
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
@@ -13,7 +14,8 @@ from .serializers import (
     UserLoginSerializer,
     ResetPasswordRequestSerializer,
     ResetPasswordSerializer,
-    UserSerializer
+    UserSerializer,
+    ChangePasswordSerializer
 )
 
 from .models import User
@@ -88,13 +90,6 @@ class ResetPassword(GenericAPIView):
     def post(self, request, token):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
-        data = serializer.validated_data
-
-        new_password = data['new_password']
-        confirm_password = data['confirmed_password']
-
-        if new_password != confirm_password:
-            return Response({'error': 'Passwords do not match'}, status=400)
 
         reset_obj = PasswordReset.objects.filter(token=token).first()
 
@@ -111,3 +106,18 @@ class ResetPassword(GenericAPIView):
 
             return Response({'success':'Password updated'})
         return Response({'error':'No user found'}, status=404)
+
+
+class ChangePasswordAPIView(APIView):
+    def post(self, request, *args, **kwargs):
+        serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            new_password = serializer.validated_data['new_password']
+
+            user = User.objects.get(email=request.user.email)
+
+            user.password = make_password(new_password)
+            user.save()
+
+            return Response({'success':'Password updated'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
