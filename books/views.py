@@ -3,6 +3,11 @@ from rest_framework import viewsets, status, mixins
 from rest_framework.views import APIView
 
 from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
+
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
+from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
+from django_elasticsearch_dsl_drf.filter_backends import SearchFilterBackend, SuggesterFilterBackend
 
 from .models import Book, ReadList, Author, Comment, Rating
 from .serializers import (
@@ -15,12 +20,6 @@ from .serializers import (
     BookDocumentSerializer
 )
 from .filters import ReadBookListFilter
-from django.db.models import Prefetch
-
-from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
-from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
-from django_elasticsearch_dsl_drf.filter_backends import SearchFilterBackend, SuggesterFilterBackend
-
 from .documents import BookDocument
 
 
