@@ -12,9 +12,11 @@ services:
       - 8000:8000
     depends_on:
       - elasticsearch
+      - redis
+      - celery_worker
     networks:
       - elastic
-      
+
   elasticsearch:
     image: elasticsearch:7.14.0
     volumes:
@@ -25,6 +27,7 @@ services:
       - 9200:9200
     networks:
       - elastic
+
 networks:
   elastic:
     driver: bridge
