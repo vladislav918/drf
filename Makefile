@@ -2,6 +2,9 @@
 run:
 	docker-compose up
 
+build:
+	docker-compose up --build
+
 migrate:
 	docker-compose exec web ./manage.py migrate
 
