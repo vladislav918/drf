@@ -13,7 +13,6 @@ services:
     depends_on:
       - elasticsearch
       - redis
-      - celery_worker
     networks:
       - elastic
 
@@ -25,6 +24,13 @@ services:
       - discovery.type=single-node
     ports:
       - 9200:9200
+    networks:
+      - elastic
+
+  redis:
+    image: redis:latest
+    ports:
+      - 6379:6379
     networks:
       - elastic
 

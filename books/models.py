@@ -6,14 +6,14 @@ from mptt.models import MPTTModel, TreeForeignKey
 
 
 class Genre(models.Model):
-    title = models.CharField(max_length=20)
+    title = models.CharField(max_length=20, unique=True)
 
     def __str__(self):
         return f'{self.id} - {self.title}'
 
 
 class Author(models.Model):
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=90, unique=True)
 
     def __str__(self):
         return f'{self.name}'
@@ -21,7 +21,7 @@ class Author(models.Model):
 
 class Comment(MPTTModel):
     book = models.ForeignKey('Book', on_delete=models.CASCADE, related_name='comments')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='comments')
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     parent = TreeForeignKey(
@@ -64,7 +64,6 @@ class Book(models.Model):
 
     def __str__(self):
         return f'{self.id} - {self.title}'
-
 
     def average_rating(self):
         ratings = self.rating_set.all()

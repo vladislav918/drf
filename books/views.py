@@ -26,15 +26,11 @@ from .documents import BookDocument
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Класс для отображения книг
+
+        
     """
     queryset = Book.objects.all().select_related('genre').prefetch_related(
         'author',
-        Prefetch(
-            'comments',
-            queryset=Comment.objects.all().select_related(
-                'user'
-            ).only('id', 'content', 'created_at', 'user__email', 'parent_id', 'book_id')
-        )
     )
 
     permission_classes = []

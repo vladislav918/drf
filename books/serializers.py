@@ -60,10 +60,15 @@ class BookWithCommentSerializer(BookSerializer):
     """
     Serializers для отображения комментариев при просмотре конкретной книги
     """
-    comments = CommentSerializer(many=True, required=False)
+    comments = serializers.SerializerMethodField()
 
     class Meta(BookSerializer.Meta):
         fields = BookSerializer.Meta.fields + ['comments']
+
+    def get_comments(self, obj):
+        queryset = Comment.objects.filter(book=obj.id).select_related('user').only('content', 'user__email', 'parent', 'created_at')
+        serializer = CommentSerializer(queryset, many=True)
+        return serializer.data
 
 
 class ReadListSerializer(serializers.ModelSerializer):
