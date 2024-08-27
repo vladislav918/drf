@@ -65,6 +65,7 @@ class Book(models.Model):
     def __str__(self):
         return f'{self.id} - {self.title}'
 
+
     def average_rating(self):
         ratings = self.rating_set.all()
         if ratings.exists():
