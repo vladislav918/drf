@@ -11,8 +11,15 @@ from .exceptions import (
     EmailAlreadyVerifiedException
 )
 
+from .models import PasswordReset, User
+from .constants import EmailType
+
 
 class EmailConfirmationService:
+
+    @staticmethod
+    def send_email_verification(user, domain):
+        EmailService.send_email(user, domain, email_type=EmailType.VERIFICATION.value)
 
     @staticmethod
     def confirm_email(uidb64, token):
@@ -54,6 +61,8 @@ class EmailService:
                 EmailService._send_verification_email(user, domain, uid, token)
             elif email_type == 'password_reset':
                 EmailService._send_password_reset_email(user, domain, uid, token)
+                reset = PasswordReset(email=user.email, token=token)
+                reset.save()
         except:
             raise ValueError(f'Неправильный email_type {email_type}')
 
@@ -100,3 +109,32 @@ class TokenService:
             raise InvalidTokenException()
 
         return True
+
+
+class PasswordResetService:
+
+    @staticmethod
+    def request_password_reset(email, domain):
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            raise UserNotFoundException()
+
+        EmailService.send_email(user, domain, email_type=EmailType.PASSWORD_RESET.value)
+
+        return user
+
+    @staticmethod
+    def reset_password(token, new_password):
+        reset_obj = PasswordReset.objects.get(token=token)
+
+        user = User.objects.filter(email=reset_obj.email).first()
+
+        if not user:
+            raise UserNotFoundException()
+
+        user.set_password(new_password)
+        user.save()
+
+        reset_obj.delete()
+
+        return user, None

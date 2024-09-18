@@ -14,9 +14,8 @@ from .serializers import (
     UserSerializer,
     ChangePasswordSerializer,
 )
-from .models import User, PasswordReset
-from .services import EmailService, EmailConfirmationService
-from .constants import EmailType
+from .models import User
+from .services import EmailConfirmationService, PasswordResetService
 
 
 class UserRegisterationAPIView(GenericAPIView):
@@ -29,7 +28,7 @@ class UserRegisterationAPIView(GenericAPIView):
         if serializer.is_valid():
             user = serializer.save()
 
-            EmailService.send_email(user, request.get_host(), email_type=EmailType.VERIFICATION.value)
+            EmailConfirmationService.send_email_verification(user, request.get_host())
 
             return Response({'message': 'Confirmation email sent.'}, status=status.HTTP_200_OK)
 
@@ -71,14 +70,14 @@ class RequestPasswordReset(GenericAPIView):
 
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            user = User.objects.filter(email__iexact=email).first()
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        user = PasswordResetService.request_password_reset(email, request.get_host())
 
         if user:
-            EmailService.send_email(user, request.get_host(), email_type=EmailType.PASSWORD_RESET.value)
-
             return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
+
         return Response({'error': 'User with credentials not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -90,23 +89,13 @@ class ResetPassword(GenericAPIView):
         serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        reset_obj = PasswordReset.objects.filter(token=token).first()
+        new_password = serializer.validated_data['new_password']
+        user, error_message = PasswordResetService.reset_password(token, new_password)
 
-        #TODO сделать проверку токена на то, что это тот, который отправили. Сейчас токен не создается вообще и поэтому вылетает ошибка Invalid token
-        if not reset_obj:
-            return Response({'error':'Invalid token'}, status=400)
-        
+        if error_message:
+            return Response({'error': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email=reset_obj.email).first()
-
-        if user:
-            user.set_password(request.data['new_password'])
-            user.save()
-
-            reset_obj.delete()
-
-            return Response({'success':'Password updated'})
-        return Response({'error':'No user found'}, status=404)
+        return Response({'success': 'Password updated'}, status=status.HTTP_200_OK)
 
 
 class ChangePasswordAPIView(GenericAPIView):
