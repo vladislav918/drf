@@ -1,7 +1,4 @@
-from django.contrib.auth.tokens import default_token_generator
 from django.contrib.auth.hashers import make_password
-from django.utils.http import urlsafe_base64_decode
-from django.utils.encoding import force_str
 
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
@@ -17,10 +14,9 @@ from .serializers import (
     UserSerializer,
     ChangePasswordSerializer,
 )
-
-from .models import User
-from .models import PasswordReset
-from .service import EmailService, generate_token
+from .models import User, PasswordReset
+from .services import EmailService, EmailConfirmationService
+from .constants import EmailType
 
 
 class UserRegisterationAPIView(GenericAPIView):
@@ -29,15 +25,11 @@ class UserRegisterationAPIView(GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         serializer = UserRegisterationSerializer(data=request.data)
+
         if serializer.is_valid():
             user = serializer.save()
 
-            uid, token = generate_token(user)
-
-            reset = PasswordReset(email=user.email, token=token)
-            reset.save()
-
-            EmailService.send_email_verification(user, request.get_host(), uid, token)
+            EmailService.send_email(user, request.get_host(), email_type=EmailType.VERIFICATION.value)
 
             return Response({'message': 'Confirmation email sent.'}, status=status.HTTP_200_OK)
 
@@ -53,11 +45,13 @@ class UserLoginAPIView(GenericAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
         if user.is_verified:
+
             serializer = UserSerializer(user)
             token = RefreshToken.for_user(user)
             data = serializer.data
             data['tokens'] = {'refresh': str(token), 'access': str(token.access_token)}
             return Response(data, status=status.HTTP_200_OK)
+
         return Response({'error': 'Email has not been confirmed'})
 
 
@@ -82,12 +76,7 @@ class RequestPasswordReset(GenericAPIView):
             user = User.objects.filter(email__iexact=email).first()
 
         if user:
-            uid, token = generate_token(user)
-
-            reset = PasswordReset(email=email, token=token)
-            reset.save()
-
-            EmailService.send_password_reset_email(user, request.get_host(), uid, token)
+            EmailService.send_email(user, request.get_host(), email_type=EmailType.PASSWORD_RESET.value)
 
             return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
         return Response({'error': 'User with credentials not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -103,8 +92,10 @@ class ResetPassword(GenericAPIView):
 
         reset_obj = PasswordReset.objects.filter(token=token).first()
 
+        #TODO сделать проверку токена на то, что это тот, который отправили. Сейчас токен не создается вообще и поэтому вылетает ошибка Invalid token
         if not reset_obj:
             return Response({'error':'Invalid token'}, status=400)
+        
 
         user = User.objects.filter(email=reset_obj.email).first()
 
@@ -137,22 +128,6 @@ class ConfirmEmailView(GenericAPIView):
     permission_classes = []
 
     def get(self, request, uidb64, token, format=None):
-        try:
-            uid = force_str(urlsafe_base64_decode(uidb64))
-            user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
+        EmailConfirmationService.confirm_email(uidb64, token)
 
-        if user is not None and default_token_generator.check_token(user, token):
-            user.is_verified = True
-            user.save()
-
-            try:
-                reset_obj = PasswordReset.objects.filter(token=token).first()
-                reset_obj.delete()
-            except:
-                pass
-
-            return Response({'status': 'Confirmed'}, status=status.HTTP_200_OK)
-
-        return Response({'status': 'Invalid link'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'status': 'Confirmed'}, status=status.HTTP_200_OK)

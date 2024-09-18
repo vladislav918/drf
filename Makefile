@@ -14,3 +14,6 @@ makemigrations:
 
 test:
 	docker compose exec web ./manage.py test --noinput
+
+superuser:
+	docker compose exec web ./manage.py createsuperuser
