@@ -24,13 +24,13 @@ class EmailConfirmationService:
             raise EmailAlreadyVerifiedException()
 
         if TokenService.validate_token(user, token):
-            UserService.change_is_verified_on_user_and_delete_token(user)
+            UserService.change_is_verified_on_user(user)
 
 
 class UserService:
 
     @staticmethod
-    def change_is_verified_on_user_and_delete_token(user):
+    def change_is_verified_on_user(user):
         user.is_verified = True
         user.save()
 
