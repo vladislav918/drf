@@ -7,7 +7,7 @@ from books.serializers import BookSerializer, BookWithCommentSerializer, AuthorS
 from books.views import BookViewSet, ReadListModelViewSet
 from books.models import Book, Author, Genre, Comment, Rating, ReadList
 
-from accounts.models import User
+from accounts.domain.models import User
 
 
 class BookSetupMixin:

@@ -23,3 +23,8 @@ class EmailAlreadyVerifiedException(APIException):
     """Исключение проверки подтвержденного аккаунта"""
     status_code = 400
     default_detail = 'Email is already verified.'
+
+
+class EmailNotVerifiedException(APIException):
+    status_code = 400
+    default_detail = 'Email not is already verified.'

@@ -1,9 +1,8 @@
 from rest_framework import serializers
 
-from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
 
-from .models import User
+from ..domain.models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -32,20 +31,9 @@ class UserRegisterationSerializer(serializers.ModelSerializer):
         return data
 
 
-    def create(self, validated_data):
-        validated_data.pop('confirm_password')
-        return User.objects.create_user(**validated_data)
-
-
 class UserLoginSerializer(serializers.Serializer):
-    email = serializers.CharField()
+    email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
-
-    def validate(self, data):
-        user = authenticate(**data)
-        if user and user.is_active:
-            return user
-        raise serializers.ValidationError('Incorrect Credentials')
 
 
 class ResetPasswordRequestSerializer(serializers.Serializer):
@@ -75,9 +63,3 @@ class ChangePasswordSerializer(serializers.Serializer):
         error_messages={
             'invalid': ('Пароль должен быть длиной не менее 8 символов с хотя бы одной заглавной буквой и символом')}
     )
-
-    def validate_old_password(self, value):
-        user = self.context['request'].user
-        if not check_password(value, user.password):
-            raise serializers.ValidationError("Old password is incorrect")
-        return value
