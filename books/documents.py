@@ -44,7 +44,6 @@ class BookDocument(Document):
         }
     )
 
-
     class Index:
         name = 'books'
 

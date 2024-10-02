@@ -1,9 +1,7 @@
 from django.contrib import admin
-
-from .models import Book, Genre, ReadList, Author, Comment, Rating
-
 from mptt.admin import MPTTModelAdmin
 
+from .models import Author, Book, Comment, Genre, Rating, ReadList
 
 admin.site.register(Genre)
 

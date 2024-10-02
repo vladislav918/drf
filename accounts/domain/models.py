@@ -17,9 +17,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    class Meta:
-        app_label = 'accounts'
-
     def get_full_name(self):
         return self.username
 

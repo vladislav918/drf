@@ -1,19 +1,17 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django_elasticsearch_dsl_drf.serializers import DocumentSerializer
+
 from rest_framework import serializers
 from rest_framework.fields import CurrentUserDefault
 
-from django.core.validators import MinValueValidator, MaxValueValidator
-
-from django_elasticsearch_dsl_drf.serializers import DocumentSerializer
-
-from .models import Book, ReadList, Genre, Author, Comment, Rating
-
 from .documents import BookDocument
+from .models import Author, Book, Comment, Genre, Rating, ReadList
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
-        fields = ['id','title']
+        fields = ['id', 'title']
 
 
 class AuthorSerializer(serializers.ModelSerializer):
@@ -53,7 +51,7 @@ class BookSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Book
-        fields = ['id','title', 'author', 'genre', 'description', 'cover_image']
+        fields = ['id', 'title', 'author', 'genre', 'description', 'cover_image']
 
 
 class BookWithCommentSerializer(BookSerializer):

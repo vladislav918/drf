@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from environs import Env
 
 env = Env()
@@ -13,8 +14,6 @@ DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = ['*']
 
-
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -38,8 +37,10 @@ INSTALLED_APPS = [
     'django_elasticsearch_dsl',
     'django_elasticsearch_dsl_drf',
 
+    # first party
     'books.apps.BooksConfig',
-    'accounts.apps.AccountsConfig',
+    'accounts',
+    'accounts.domain',
 ]
 
 MIDDLEWARE = [
@@ -139,7 +140,7 @@ REST_FRAMEWORK = {
     ),
 }
 
-from datetime import timedelta  
+from datetime import timedelta
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
@@ -177,7 +178,7 @@ AWS_S3_ENDPOINT_URL = env.str("AWS_S3_ENDPOINT_URL")
 DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 
-AUTH_USER_MODEL = 'accounts.User'
+AUTH_USER_MODEL = 'domain.User'
 
 
 import os
