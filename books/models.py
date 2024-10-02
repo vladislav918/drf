@@ -1,7 +1,6 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Avg
-from django.conf import settings
-
 from mptt.models import MPTTModel, TreeForeignKey
 
 
@@ -64,7 +63,6 @@ class Book(models.Model):
 
     def __str__(self):
         return f'{self.id} - {self.title}'
-
 
     def average_rating(self):
         ratings = self.rating_set.all()

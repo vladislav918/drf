@@ -1,7 +1,5 @@
 from rest_framework import serializers
 
-from django.contrib.auth.hashers import check_password
-
 from ..domain.models import User
 
 
@@ -12,7 +10,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserRegisterationSerializer(serializers.ModelSerializer):
-    confirm_password = serializers.CharField(style={'input_type': 'password'}, write_only=True)
+    confirm_password = serializers.CharField(
+        style={'input_type': 'password'},
+        write_only=True
+    )
     password = serializers.RegexField(
         regex=r'^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[a-zA-Z\d@$!%*?&]{8,}$',
         write_only=True,
@@ -23,7 +24,6 @@ class UserRegisterationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password', 'confirm_password')
-
 
     def validate(self, data):
         if data['password'] != data['confirm_password']:
@@ -40,7 +40,7 @@ class ResetPasswordRequestSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
 
 
-class ResetPasswordSerializer(serializers.Serializer): 
+class ResetPasswordSerializer(serializers.Serializer):
     new_password = serializers.RegexField(
         regex=r'^(?=.*[a-zA-Z])(?=.*\d)(?=.*[@$!%*?&])[a-zA-Z\d@$!%*?&]{8,}$',
         write_only=True,

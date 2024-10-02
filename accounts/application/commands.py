@@ -27,7 +27,7 @@ class LogoutUserCommand:
 
 @dataclass
 class RequestPasswordResetCommand:
-    email: str 
+    email: str
 
 
 @dataclass

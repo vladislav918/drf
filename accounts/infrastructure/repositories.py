@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 
 from accounts.domain.exceptions import UserNotFoundException
 
@@ -15,7 +16,7 @@ class UserRepository:
         try:
             user_model = get_user_model().objects.get(pk=user_id)
             return user_model
-        except:
+        except ObjectDoesNotExist:
             raise UserNotFoundException()
 
     @staticmethod
@@ -23,7 +24,7 @@ class UserRepository:
         try:
             user_model = get_user_model().objects.get(email=email)
             return user_model
-        except:
+        except ObjectDoesNotExist:
             raise UserNotFoundException()
 
     @staticmethod
@@ -31,7 +32,7 @@ class UserRepository:
         try:
             user_model = get_user_model().objects.get(pk=user_id)
             return user_model
-        except:
+        except ObjectDoesNotExist:
             raise UserNotFoundException()
 
     @staticmethod

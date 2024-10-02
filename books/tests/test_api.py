@@ -1,13 +1,12 @@
 from django.urls import reverse
-
-from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-
-from books.serializers import BookSerializer, BookWithCommentSerializer, AuthorSerializer
-from books.views import BookViewSet, ReadListModelViewSet
-from books.models import Book, Author, Genre, Comment, Rating, ReadList
+from rest_framework.test import APIClient, APITestCase
 
 from accounts.domain.models import User
+from books.models import Author, Book, Comment, Genre, Rating, ReadList
+from books.serializers import (AuthorSerializer, BookSerializer,
+                               BookWithCommentSerializer)
+from books.views import BookViewSet, ReadListModelViewSet
 
 
 class BookSetupMixin:
@@ -41,7 +40,6 @@ class BookViewSetTestCase(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data['results']), Book.objects.count())
 
-
     def test_retrieve_view_returns_correct_details(self):
         """
         Тест для просмотра детально книг
@@ -57,7 +55,6 @@ class BookViewSetTestCase(UserSetupMixin, BookSetupMixin, APITestCase):
         expected_data = BookWithCommentSerializer(self.book).data
         self.assertEqual(response.data, expected_data)
 
-
     def test_get_serializer_class_for_retrieve(self):
         """
         Тест для проверки какой сериализатор используется
@@ -68,7 +65,6 @@ class BookViewSetTestCase(UserSetupMixin, BookSetupMixin, APITestCase):
         view.action = 'retrieve'
         serializer_class = view.get_serializer_class()
         self.assertEqual(serializer_class, BookWithCommentSerializer)
-
 
     def test_get_serializer_class_for_list(self):
         """
@@ -101,15 +97,14 @@ class CommentBookViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(comment.user, self.user)
         self.assertEqual(comment.content, 'Test comment')
 
-
     def test_create_comment_with_parent(self):
         """
         Тест создания комментария с родителем.
         """
         parent_comment = Comment.objects.create(
-            book = self.book,
-            user = self.user,
-            content = 'Parent comment',
+            book=self.book,
+            user=self.user,
+            content='Parent comment',
         )
         data = {
             'content': 'Reply comment',
@@ -127,7 +122,6 @@ class CommentBookViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(comment.content, 'Reply comment')
         self.assertEqual(comment.parent, parent_comment)
 
-
     def test_create_comment_invalid_data(self):
         """
         Тест создания комментария с невалидными данными.
@@ -139,7 +133,6 @@ class CommentBookViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         response = self.client_authenticated.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(Comment.objects.count(), 0)
-
 
     def test_create_comment_invalid_parent(self):
         """
@@ -170,7 +163,6 @@ class RatingViewSetTest(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(Rating.objects.count(), 1)
         self.assertEqual(Rating.objects.first().rating, 4)
 
-
     def test_update_rating(self):
         """
         Тест для проверки обновления рейтинга
@@ -187,7 +179,6 @@ class RatingViewSetTest(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(Rating.objects.count(), 1)
         self.assertEqual(Rating.objects.first().rating, 5)
 
-
     def test_create_rating_unauthorized(self):
         """
         Тест для проверки создания рейтинга неавторизованным пользователем
@@ -197,7 +188,6 @@ class RatingViewSetTest(UserSetupMixin, BookSetupMixin, APITestCase):
         response = self.client_unauthenticated.post(url, data=data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-
 
     def test_invalid_data(self):
         """
@@ -210,15 +200,12 @@ class RatingViewSetTest(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('rating', response.data)
 
-
     def test_nonexistent_book(self):
         """
         Тест для проверки создания рейтинга для несуществующей книги
         """
         data = {'rating': 4}
-        response = self.client_authenticated.post(
-            f'/book/999/ratings/', data=data, format='json'
-        )
+        response = self.client_authenticated.post('/book/999/ratings/', data=data, format='json')
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
@@ -237,7 +224,6 @@ class ReadListModelViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(queryset.model, ReadList)
         self.assertEqual(list(queryset), [])
 
-
     def test_create_read_list_entry(self):
         """
         Тест на проверку создания прочитанных книг
@@ -250,7 +236,6 @@ class ReadListModelViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(ReadList.objects.first().user, self.user)
         self.assertEqual(ReadList.objects.first().book, self.book)
 
-
     def test_create_duplicate_read_list_entry(self):
         """
         Тест на проверку дубликов
@@ -259,7 +244,6 @@ class ReadListModelViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         response = self.client_authenticated.post('/api/v1/read-book/', {'book': self.book.id}, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(ReadList.objects.count(), 1)
-
 
     def test_delete_read_list_entry(self):
         """
@@ -270,14 +254,12 @@ class ReadListModelViewSetTests(UserSetupMixin, BookSetupMixin, APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(ReadList.objects.filter(id=read_list_entry.id).exists())
 
-
     def test_delete_nonexistent_read_list_entry(self):
         """
         Тест на удаления книги из прочитанных не существующей книги
         """
         response = self.client_authenticated.delete('/read-list/999/')
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
 
     def test_list_read_list_entries(self):
         """
@@ -300,8 +282,7 @@ class AuthorDetailViewTests(BookSetupMixin, UserSetupMixin, APITestCase):
         response = self.client_authenticated.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data[0]['author'][0]['name'], self.author.name) 
-
+        self.assertEqual(response.data[0]['author'][0]['name'], self.author.name)
 
     def test_author_serializer(self):
         """
@@ -309,7 +290,6 @@ class AuthorDetailViewTests(BookSetupMixin, UserSetupMixin, APITestCase):
         """
         serializer = AuthorSerializer(self.author)
         self.assertEqual(serializer.data['name'], self.author.name)
-
 
     def test_book_serializer(self):
         """

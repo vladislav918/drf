@@ -1,31 +1,25 @@
+from django.db.models import Prefetch
+from django.shortcuts import get_object_or_404
+from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
+from django_elasticsearch_dsl_drf.filter_backends import (
+    SearchFilterBackend, SuggesterFilterBackend)
+from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
+from rest_framework import mixins, status, viewsets
 from rest_framework.response import Response
-from rest_framework import viewsets, status, mixins
 from rest_framework.views import APIView
 
-from django.shortcuts import get_object_or_404
-from django.db.models import Prefetch
-
-from django_elasticsearch_dsl_drf.viewsets import DocumentViewSet
-from django_elasticsearch_dsl_drf.constants import SUGGESTER_COMPLETION
-from django_elasticsearch_dsl_drf.filter_backends import SearchFilterBackend, SuggesterFilterBackend
-
-from .models import Book, ReadList, Author, Comment, Rating
-from .serializers import (
-    BookSerializer,
-    ReadListSerializer,
-    AuthorSerializer,
-    CommentSerializer,
-    BookWithCommentSerializer,
-    RatingSerializer,
-    BookDocumentSerializer
-)
-from .filters import ReadBookListFilter
 from .documents import BookDocument
+from .filters import ReadBookListFilter
+from .models import Author, Book, Comment, Rating, ReadList
+from .serializers import (AuthorSerializer, BookDocumentSerializer,
+                          BookSerializer, BookWithCommentSerializer,
+                          CommentSerializer, RatingSerializer,
+                          ReadListSerializer)
 
 
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Класс для отображения книг        
+    Класс для отображения книг
     """
 
     queryset = Book.objects.all().select_related('genre').prefetch_related(
@@ -44,7 +38,7 @@ class CommentBookAPIView(APIView):
     """
     Добавление комментариев к конкретной книге
     """
-    serializer_class = CommentSerializer    
+    serializer_class = CommentSerializer
 
     def post(self, request, book_pk=None):
         book = get_object_or_404(Book, pk=book_pk)
@@ -99,8 +93,7 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
 
     def get_queryset(self):
         return ReadList.objects.filter(user=self.request.user).select_related(
-            'book'
-            ).select_related('book__genre').prefetch_related('book__author')
+            'book').select_related('book__genre').prefetch_related('book__author')
 
     def create(self, request):
         serializer = ReadListSerializer(data=request.data, context={'request': request})
@@ -108,7 +101,6 @@ class ReadListModelViewSet(mixins.CreateModelMixin,
 
         serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
-
 
     def destroy(self, request, pk=None):
         read_book = ReadList.objects.filter(user=request.user, book_id=pk)
@@ -140,16 +132,13 @@ class AuthorDetailView(viewsets.ReadOnlyModelViewSet):
 
 class BookDocumentView(DocumentViewSet):
     """
-    Поиск через ElasticSearch 
+    Поиск через ElasticSearch
     """
     permission_classes = []
     document = BookDocument
     serializer_class = BookDocumentSerializer
 
-    filter_backends = [
-    	SearchFilterBackend,
-        SuggesterFilterBackend,
-    ]
+    filter_backends = [SearchFilterBackend, SuggesterFilterBackend]
 
     search_fields = ('title',)
 

@@ -2,32 +2,25 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 
-from .serializers import (
-    UserRegisterationSerializer,
-    UserLoginSerializer,
-    ResetPasswordRequestSerializer,
-    ResetPasswordSerializer,
-    UserSerializer,
-    ChangePasswordSerializer,
-)
-from accounts.application.use_cases import (
-    RegisterUserUseCase,
-    ConfirmEmailUseCase,
-    LoginUserUseCase,
-    LogoutUserUseCase,
-    RequestPasswordResetUseCase,
-    ResetPasswordUseCase,
-    ChangePasswordUseCase
-)
-from accounts.application.commands import (
-    RegisterUserCommand,
-    ConfirmEmailCommand,
-    LoginUserCommand,
-    LogoutUserCommand,
-    RequestPasswordResetCommand,
-    ReserPasswordCommand,
-    ChangePasswordCommand,
-)
+from accounts.application.commands import (ChangePasswordCommand,
+                                           ConfirmEmailCommand,
+                                           LoginUserCommand, LogoutUserCommand,
+                                           RegisterUserCommand,
+                                           RequestPasswordResetCommand,
+                                           ReserPasswordCommand)
+
+from accounts.application.use_cases import (ChangePasswordUseCase,
+                                            ConfirmEmailUseCase,
+                                            LoginUserUseCase,
+                                            LogoutUserUseCase,
+                                            RegisterUserUseCase,
+                                            RequestPasswordResetUseCase,
+                                            ResetPasswordUseCase)
+
+from .serializers import (ChangePasswordSerializer,
+                          ResetPasswordRequestSerializer,
+                          ResetPasswordSerializer, UserLoginSerializer,
+                          UserRegisterationSerializer, UserSerializer)
 
 
 class UserRegistrationAPIView(GenericAPIView):
@@ -46,11 +39,14 @@ class UserRegistrationAPIView(GenericAPIView):
             use_case = RegisterUserUseCase()
             use_case.execute(command, request.get_host())
 
-            return Response({'message': 'Confirmation email sent.'}, status=status.HTTP_200_OK)
+            return Response(
+                {'message': 'Confirmation email sent.'},
+                status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    
+
 class ConfirmEmailView(GenericAPIView):
     permission_classes = []
 
@@ -62,7 +58,11 @@ class ConfirmEmailView(GenericAPIView):
             )
             use_case = ConfirmEmailUseCase()
             use_case.execute(command)
-            return Response({'message': 'Email confirmed'}, status=status.HTTP_200_OK)
+
+            return Response(
+                {'message': 'Email confirmed'},
+                status=status.HTTP_200_OK
+            )
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -95,12 +95,15 @@ class LogoutView(GenericAPIView):
     def post(self, request, *args, **kwargs):
         try:
             command = LogoutUserCommand(
-                refresh = request.data['refresh'],
+                refresh=request.data['refresh'],
             )
             use_case = LogoutUserUseCase()
             use_case.execute(command)
 
-            return Response({'message': 'Successfully logged out'}, status=status.HTTP_200_OK)
+            return Response(
+                {'message': 'Successfully logged out'},
+                status=status.HTTP_200_OK
+            )
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -115,13 +118,16 @@ class RequestPasswordReset(GenericAPIView):
         if serializer.is_valid(raise_exception=True):
 
             command = RequestPasswordResetCommand(
-                email = serializer.validated_data['email'],
+                email=serializer.validated_data['email'],
             )
 
             use_case = RequestPasswordResetUseCase()
             use_case.execute(command, request.get_host())
 
-            return Response({'success': 'We have sent you a link to reset your password'}, status=status.HTTP_200_OK)
+            return Response(
+                {'success': 'We have sent you a link to reset your password'},
+                status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -135,7 +141,7 @@ class ResetPassword(GenericAPIView):
         if serializer.is_valid():
 
             command = ReserPasswordCommand(
-                new_password = serializer.validated_data['new_password'],
+                new_password=serializer.validated_data['new_password'],
                 uidb64=uidb64,
                 token=token,
             )
@@ -143,7 +149,10 @@ class ResetPassword(GenericAPIView):
             use_case = ResetPasswordUseCase()
             use_case.execute(command)
 
-            return Response({'success': 'Password updated'}, status=status.HTTP_200_OK)
+            return Response(
+                {'success': 'Password updated'},
+                status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -156,14 +165,17 @@ class ChangePasswordAPIView(GenericAPIView):
         if serializer.is_valid():
 
             command = ChangePasswordCommand(
-                new_password = serializer.validated_data['new_password'],
-                old_password = serializer.validated_data['old_password'],
-                email = request.user,
+                new_password=serializer.validated_data['new_password'],
+                old_password=serializer.validated_data['old_password'],
+                email=request.user,
             )
 
             use_case = ChangePasswordUseCase()
             use_case.execute(command)
 
-            return Response({'success':'Password updated'}, status=status.HTTP_200_OK)
+            return Response(
+                {'success': 'Password updated'},
+                status=status.HTTP_200_OK
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

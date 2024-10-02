@@ -1,11 +1,16 @@
-from .commands import RegisterUserCommand, ConfirmEmailCommand, LoginUserCommand, ChangePasswordCommand
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from accounts.domain.exceptions import (EmailAlreadyVerifiedException,
+                                        EmailNotVerifiedException,
+                                        InvalidTokenException,
+                                        UserNotFoundException)
 from accounts.infrastructure.repositories import UserRepository
+
+from .commands import (ChangePasswordCommand, ConfirmEmailCommand,
+                       LoginUserCommand, RegisterUserCommand)
 from .services.email_service import EmailService
 from .services.token_service import TokenService
-from accounts.domain.exceptions import InvalidTokenException, EmailAlreadyVerifiedException, UserNotFoundException, EmailNotVerifiedException
-from django.contrib.auth import authenticate
-
-from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class RegisterUserUseCase:
@@ -44,7 +49,6 @@ class LoginUserUseCase:
             'user': user_model,
             'tokens': tokens
         }
-
 
     def _authenticate_user(self, command: LoginUserCommand):
         user_model = authenticate(email=command.email, password=command.password)
