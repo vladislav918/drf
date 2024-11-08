@@ -3,10 +3,10 @@ from rest_framework import status
 from rest_framework.test import APIClient, APITestCase
 
 from accounts.domain.models import User
-from books.models import Author, Book, Comment, Genre, Rating, ReadList
-from books.serializers import (AuthorSerializer, BookSerializer,
+from books.domain.models import Author, Book, Comment, Genre, Rating, ReadList
+from books.api.serializers import (AuthorSerializer, BookSerializer,
                                BookWithCommentSerializer)
-from books.views import BookViewSet, ReadListModelViewSet
+from books.api.views import BookViewSet, ReadListModelViewSet
 
 
 class BookSetupMixin:

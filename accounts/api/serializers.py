@@ -10,7 +10,7 @@ from ..domain.models import User
 class PasswordValidator:
     def __call__(self, value):
         MinLengthValidator(8)(value)
-        
+        #TODO
         if not re.search(r'[A-Z]', value):
             raise serializers.ValidationError("Пароль должен содержать хотя бы одну заглавную букву.")
         

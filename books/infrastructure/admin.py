@@ -1,7 +1,7 @@
 from django.contrib import admin
 from mptt.admin import MPTTModelAdmin
 
-from .models import Author, Book, Comment, Genre, Rating, ReadList
+from ..domain.models import Author, Book, Comment, Genre, Rating, ReadList
 
 admin.site.register(Genre)
 
@@ -22,7 +22,6 @@ admin.site.register(Rating)
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
     fields = ('title', 'author', 'genre', 'description', 'cover_image')
-    filter_horizontal = ('author', )
 
 
 @admin.register(ReadList)

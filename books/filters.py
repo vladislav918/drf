@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from .models import ReadList
+from .domain.models import ReadList
 
 
 class ReadBookListFilter(filters.FilterSet):

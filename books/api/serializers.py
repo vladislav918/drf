@@ -2,10 +2,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django_elasticsearch_dsl_drf.serializers import DocumentSerializer
 
 from rest_framework import serializers
-from rest_framework.fields import CurrentUserDefault
 
-from .documents import BookDocument
-from .models import Author, Book, Comment, Genre, Rating, ReadList
+from ..documents import BookDocument
+from ..domain.models import Author, Book, Comment, Genre, Rating, ReadList
+
+from accounts.api.serializers import UserSerializer
 
 
 class GenreSerializer(serializers.ModelSerializer):
@@ -21,7 +22,7 @@ class AuthorSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = serializers.ReadOnlyField(source='user.email')
+    user = UserSerializer()
     created_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -31,10 +32,7 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class RatingSerializer(serializers.ModelSerializer):
     rating = serializers.IntegerField(
-        validators=[
-            MinValueValidator(1),
-            MaxValueValidator(5),
-        ]
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
 
     class Meta:
@@ -44,38 +42,33 @@ class RatingSerializer(serializers.ModelSerializer):
 
 class BookSerializer(serializers.ModelSerializer):
     """
-    Основной Serializers для книг
+    Основной сериализатор для книг
     """
     genre = GenreSerializer(read_only=True)
     author = AuthorSerializer(many=True, read_only=True)
 
     class Meta:
         model = Book
-        fields = ['id', 'title', 'author', 'genre', 'description', 'cover_image']
+        fields = ['id', 'title', 'author', 'genre', 'cover_image']
 
 
 class BookWithCommentSerializer(BookSerializer):
     """
-    Serializers для отображения комментариев при просмотре конкретной книги
+    Сериализатор для отображения книги с комментариями
     """
-    comments = serializers.SerializerMethodField()
+    comments = CommentSerializer(many=True, read_only=True)
 
     class Meta(BookSerializer.Meta):
         fields = BookSerializer.Meta.fields + ['comments']
 
-    def get_comments(self, obj):
-        queryset = Comment.objects.filter(book=obj.id).select_related('user').only('content', 'user__email', 'parent', 'created_at')
-        serializer = CommentSerializer(queryset, many=True)
-        return serializer.data
-
 
 class ReadListSerializer(serializers.ModelSerializer):
     """
-    Serializers для списка прочитанных книг
+    Сериализатор для списка прочитанных книг
     """
     book = serializers.PrimaryKeyRelatedField(queryset=Book.objects.all())
     book_details = BookSerializer(source='book', read_only=True)
-    user = serializers.HiddenField(default=CurrentUserDefault())
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = ReadList
@@ -83,7 +76,9 @@ class ReadListSerializer(serializers.ModelSerializer):
 
 
 class BookDocumentSerializer(DocumentSerializer):
+    """
+    Сериализатор для поиска книг через Elasticsearch
+    """
     class Meta:
         document = BookDocument
-
         fields = ['id', 'title', 'author', 'genre', 'description']
